@@ -75,7 +75,7 @@ def get_calls_metrics():
 
 def get_outcome_metrics():
     """
-    Calculate call outcome metrics and trends
+    Calculate call outcome metrics and daily counts
     """
     df = get_call_data()
     
@@ -98,22 +98,49 @@ def get_outcome_metrics():
         'ineligible_mc_number': (df['Call Outcome'] == 'ineligible_mc_number').mean()
     }
     
-    # Calculate daily trends
-    df['date'] = pd.to_datetime(df['Call Date']).dt.date
-    daily_outcomes = df.groupby('date')['Call Outcome'].value_counts(normalize=True).unstack(fill_value=0)
+    # Calculate daily counts
+    # First convert to datetime, handling NaT values
+    df['date'] = pd.to_datetime(df['Call Date'], errors='coerce')
+    # Drop rows with NaT dates
+    df = df.dropna(subset=['date'])
+    # Convert to date
+    df['date'] = df['date'].dt.date
     
-    # Ensure all outcome columns exist
+    if df.empty:
+        return {
+            'current_metrics': current_metrics,
+            'trends': pd.DataFrame(columns=['date'])
+        }
+    
+    # Create a complete date range
+    min_date = df['date'].min()
+    max_date = df['date'].max()
+    date_range = pd.date_range(
+        start=min_date,
+        end=max_date,
+        freq='D'
+    )
+    
+    # Initialize the trends DataFrame with the complete date range
+    daily_counts = pd.DataFrame({'date': date_range.date})
+    
+    # Calculate daily counts for each outcome
     for outcome in ['success_rate_booked', 'rate_too_low', 'no_matching_loads', 'ineligible_mc_number']:
-        if outcome not in daily_outcomes.columns:
-            daily_outcomes[outcome] = 0
+        # Get daily counts for this outcome
+        outcome_counts = df[df['Call Outcome'] == outcome].groupby('date').size()
+        # Merge with the complete date range
+        daily_counts = daily_counts.merge(
+            outcome_counts.reset_index(name=outcome),
+            on='date',
+            how='left'
+        )
     
-    # Reset index to make date a column
-    daily_outcomes = daily_outcomes.reset_index()
-    daily_outcomes['date'] = pd.to_datetime(daily_outcomes['date'])
+    # Fill any missing values with 0
+    daily_counts = daily_counts.fillna(0)
     
     return {
         'current_metrics': current_metrics,
-        'trends': daily_outcomes
+        'trends': daily_counts
     }
 
 def get_negotiation_metrics():
@@ -147,7 +174,7 @@ def get_negotiation_metrics():
 
 def get_sentiment_metrics():
     """
-    Calculate carrier sentiment metrics and trends
+    Calculate carrier sentiment metrics and daily counts
     """
     df = get_call_data()
     
@@ -156,19 +183,45 @@ def get_sentiment_metrics():
             'trends': pd.DataFrame()
         }
     
-    # Calculate daily sentiment distribution
-    df['date'] = pd.to_datetime(df['Call Date']).dt.date
-    daily_sentiments = df.groupby('date')['Carrier Sentiment'].value_counts(normalize=True).unstack(fill_value=0)
+    # Calculate daily counts
+    # First convert to datetime, handling NaT values
+    df['date'] = pd.to_datetime(df['Call Date'], errors='coerce')
+    # Drop rows with NaT dates
+    df = df.dropna(subset=['date'])
+    # Convert to date
+    df['date'] = df['date'].dt.date
     
-    # Ensure all sentiment columns exist
+    if df.empty:
+        return {
+            'trends': pd.DataFrame(columns=['date'])
+        }
+    
+    # Create a complete date range
+    min_date = df['date'].min()
+    max_date = df['date'].max()
+    date_range = pd.date_range(
+        start=min_date,
+        end=max_date,
+        freq='D'
+    )
+    
+    # Initialize the trends DataFrame with the complete date range
+    daily_counts = pd.DataFrame({'date': date_range.date})
+    
+    # Calculate daily counts for each sentiment
     for sentiment in ['carrier_sentiment_positive', 'carrier_sentiment_negative', 'carrier_sentiment_neutral']:
-        if sentiment not in daily_sentiments.columns:
-            daily_sentiments[sentiment] = 0
+        # Get daily counts for this sentiment
+        sentiment_counts = df[df['Carrier Sentiment'] == sentiment].groupby('date').size()
+        # Merge with the complete date range
+        daily_counts = daily_counts.merge(
+            sentiment_counts.reset_index(name=sentiment),
+            on='date',
+            how='left'
+        )
     
-    # Reset index to make date a column
-    daily_sentiments = daily_sentiments.reset_index()
-    daily_sentiments['date'] = pd.to_datetime(daily_sentiments['date'])
+    # Fill any missing values with 0
+    daily_counts = daily_counts.fillna(0)
     
     return {
-        'trends': daily_sentiments
+        'trends': daily_counts
     } 
