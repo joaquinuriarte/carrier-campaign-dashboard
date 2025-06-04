@@ -82,7 +82,7 @@ if not df.empty:
     
     with col1:
         st.metric(
-            "Successful Calls",
+            "Success",
             f"{outcome_metrics['current_metrics']['success_rate_booked']:.1%}"
         )
     
@@ -117,7 +117,7 @@ if not df.empty:
         },
         title='Call Outcome Trends Over Time',
         x_label='Date',
-        y_label='Percentage'
+        y_label='Counts'
     )
 
     # ============================================================================
