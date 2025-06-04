@@ -13,10 +13,10 @@ def render_outcome_trends_chart(
     },
     title='Call Outcome Trends Over Time',
     x_label='Date',
-    y_label='Percentage'
+    y_label='Count'
 ):
     """
-    Render a normalized stacked area chart showing call outcome trends
+    Render a line chart showing call outcome counts over time
     
     Args:
         data (pd.DataFrame): DataFrame containing the outcome trends data
@@ -31,7 +31,7 @@ def render_outcome_trends_chart(
         st.info("No outcome data available")
         return
     
-    fig = px.area(
+    fig = px.line(
         data,
         x=date_col,
         y=y_columns,
@@ -45,8 +45,7 @@ def render_outcome_trends_chart(
         yaxis_title=y_label,
         hovermode='x unified',
         yaxis=dict(
-            tickformat='.0%',
-            range=[0, 1]
+            tickformat='.0f'  # Show whole numbers
         )
     )
     
